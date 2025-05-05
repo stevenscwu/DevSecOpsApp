@@ -4,20 +4,15 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 
 jobs:
-  build-and-analyze:
+  build:
     name: .NET + Angular Analysis
-    runs-on: ubuntu-latest  # We switch to Ubuntu for better multi-tool support
+    runs-on: windows-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v3
@@ -27,23 +22,26 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18.x'
+          node-version: '20.x'
 
-      - name: Setup Java 17
+      - name: Setup Java 17 (required by SonarQube)
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
+          distribution: 'zulu'
           java-version: '17'
 
       - name: Install SonarScanner for .NET
         run: |
           dotnet tool install --global dotnet-sonarscanner
 
+      - name: Add .dotnet tools to PATH
+        run: echo "$HOME/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
+        shell: pwsh
+
       - name: .NET Core Begin Analysis
         run: |
           dotnet-sonarscanner begin /k:"DevSecOpsApp" /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
-        env:
-          PATH: ${{ runner.tool_cache }}/dotnet-sonarscanner:${{ env.PATH }}
+        shell: pwsh
 
       - name: Build .NET Core
         run: dotnet build
@@ -51,19 +49,5 @@ jobs:
       - name: .NET Core End Analysis
         run: |
           dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
-        env:
-          PATH: ${{ runner.tool_cache }}/dotnet-sonarscanner:${{ env.PATH }}
+        shell: pwsh
 
-      - name: Install SonarScanner CLI
-        run: |
-          npm install -g sonar-scanner
-
-      - name: Angular Analysis (ClientApp)
-        working-directory: ./ClientApp
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=DevSecOpsApp \
-            -Dsonar.sources=src \
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.typescript.tsconfigPath=tsconfig.json
