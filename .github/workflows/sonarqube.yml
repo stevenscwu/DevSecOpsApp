@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: .NET + Angular Analysis
+    name: .NET + Angular SonarQube Analysis
     runs-on: windows-latest
 
     steps:
@@ -31,23 +31,34 @@ jobs:
           java-version: '17'
 
       - name: Install SonarScanner for .NET
-        run: |
-          dotnet tool install --global dotnet-sonarscanner
+        run: dotnet tool install --global dotnet-sonarscanner
 
       - name: Add .dotnet tools to PATH
         run: echo "$HOME/.dotnet/tools" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8
         shell: pwsh
 
-      - name: .NET Core Begin Analysis
+      - name: Begin SonarQube analysis
         run: |
-          dotnet-sonarscanner begin /k:"DevSecOpsApp" /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+          dotnet-sonarscanner begin `
+            /k:"DevSecOpsApp" `
+            /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}" `
+            /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
         shell: pwsh
 
-      - name: Build .NET Core
-        run: dotnet build
-
-      - name: .NET Core End Analysis
+      - name: Restore & Build .NET backend
         run: |
-          dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+          dotnet restore DevSecOpsApp.sln
+          dotnet build DevSecOpsApp.sln --no-incremental --configuration Release
         shell: pwsh
 
+      - name: End SonarQube analysis
+        run: dotnet-sonarscanner end /d:sonar.login="${{ secrets.SONAR_TOKEN }}"
+        shell: pwsh
+
+      - name: Install Angular dependencies
+        working-directory: ./src
+        run: npm ci
+
+      - name: Run Angular build
+        working-directory: ./src
+        run: npm run build
