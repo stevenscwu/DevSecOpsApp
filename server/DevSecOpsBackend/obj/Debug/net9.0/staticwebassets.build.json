@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "fPEhJZNxTlRhMNdpr164qibAmLNIiY/SrXrY92LaYAU=",
+  "Source": "DevSecOpsBackend",
+  "BasePath": "_content/DevSecOpsBackend",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
